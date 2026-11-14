@@ -34,7 +34,7 @@ function run(){
 function act(btn,fn){ btn.onclick=function(){ if(!LAST) return msg('請先排盤'); var t=btn.textContent; btn.disabled=true; btn.textContent='產生中…';
   Promise.resolve().then(fn).then(function(){ msg('完成'); },function(e){ msg('失敗：'+e.message); }).then(function(){ btn.disabled=false; btn.textContent=t; }); }; }
 function share(){ var url=ZWCases.toURL(settings());
-  return ZWExport.buildDocx(LAST).then(function(b){ var f=new File([b],ZWExport.fname(LAST,'docx'),{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return ZWExport.exportShared(LAST,'pdf',{download:false}).then(function(r){ var f=new File([r.blob],r.filename,{type:'application/pdf'});
     if(navigator.canShare&&navigator.canShare({files:[f]})) return navigator.share({files:[f],title:LAST.title,text:LAST.title+'　'+url}).catch(function(e){ if(e.name!=='AbortError') throw e; });
     if(navigator.share) return navigator.share({title:LAST.title,url:url}).catch(function(){});
     return (navigator.clipboard?navigator.clipboard.writeText(url):Promise.resolve()).then(function(){ msg('此瀏覽器不支援分享，已複製連結'); }); }); }
@@ -46,7 +46,8 @@ function init(){
     $('cal').onchange=calSwitch; $('go').onclick=run;
     $('stime').onchange=function(){ if(this.value) $('tidx').value=ZW.timeToIndex(this.value); };
     act($('dlDocx'),function(){ return ZWExport.exportBook(LAST,'docx'); });
-    act($('dlPdf'),function(){ return ZWExport.exportBook(LAST,'print'); });
+    act($('dlPdf'),function(){ return ZWExport.exportBook(LAST,'pdf'); });
+    act($('print'),function(){ return ZWExport.exportBook(LAST,'print'); });
     act($('dlJson'),function(){ return ZWExport.exportBook(LAST,'json'); });
     act($('share'),share);
     ZWCases.init();

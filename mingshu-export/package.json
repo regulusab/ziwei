@@ -1,0 +1,15 @@
+{
+  "name": "mingshu-export",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "紫微斗數站、盲派八字站共用的命書 Word／PDF 匯出模組（瀏覽器端）",
+  "scripts": {
+    "test": "node test/node-smoke.mjs",
+    "test:browser": "node test/browser-test.mjs",
+    "examples": "node tools/make-examples.mjs",
+    "schema": "node tools/make-schema.mjs",
+    "fonts": "python3 tools/build_fonts.py"
+  },
+  "license": "MIT（程式）；fonts/ 為 SIL OFL 1.1；vendor/ 各依其授權（MIT）"
+}

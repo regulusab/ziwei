@@ -1,6 +1,6 @@
 /* 命書匯出：exportBook(book, 'docx'|'print'|'json')
    book 為 js/book.js 產生的資料物件（sections/blocks），與畫面無關，日後可直接換成共用匯出模組。
-   Word 用 docx.js（vendor/docx.js，本機載入）；PDF 用瀏覽器列印（另存 PDF）。 */
+   Word／PDF 交給共用匯出模組 mingshu-export（mingshu/1 格式）；列印用瀏覽器；舊的 docx.js 匯出保留為 'docx-legacy'。 */
 (function(){
 'use strict';
 function loadScript(src){ return new Promise(function(ok,bad){ var s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=function(){bad(new Error('載入 '+src+' 失敗'));}; document.head.appendChild(s); }); }
@@ -77,12 +77,20 @@ function toMingshu(book){
       center:{rows:[['四柱',R.chineseDate],['五行局',R.fiveElementsClass],['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br:'')],['命主／身主',R.soul+'／'+R.body],['生年四化',C.sihua.map(function(x){return x.star+x.hua;}).join(' ')]]}},
     sections:sec};
 }
+var MOD;
+function mod(){ return MOD||(MOD=import(new URL('mingshu-export/src/mingshu-export.js',location.href).href)); }
+// 用共用匯出模組（Ab2 mingshu-export，已複製到本站 mingshu-export/）產生 Word／PDF
+function exportShared(book,format,opts){ return mod().then(function(m){ return m.exportMingshu(toMingshu(book),Object.assign({format:format,filename:book.title.replace(/[\\/:*?"<>|\s：]+/g,'_')},opts||{})); })
+  .then(function(r){ if(r&&r.warnings&&r.warnings.length&&window.console) console.warn(r.warnings); return r; }); }
 function exportBook(book,fmt){
-  if(fmt==='docx') return buildDocx(book).then(function(b){ download(b,fname(book,'docx')); return b; });
+  if(fmt==='pdf') return exportShared(book,'pdf');
+  if(fmt==='docx') return exportShared(book,'docx');
+  if(fmt==='share-pdf') return exportShared(book,'pdf',{share:true});
+  if(fmt==='docx-legacy') return buildDocx(book).then(function(b){ download(b,fname(book,'docx')); return b; });
   if(fmt==='print'){ document.querySelectorAll('details').forEach(function(d){d.open=true;}); window.print(); return Promise.resolve(); }
   if(fmt==='json'){ var o=toMingshu(book);
     var b=new Blob([JSON.stringify(o,null,1)],{type:'application/json'}); download(b,fname(book,'json')); return Promise.resolve(b); }
   return Promise.reject(new Error('不支援的格式'));
 }
-window.ZWExport={exportBook:exportBook, toMingshu:toMingshu, buildDocx:buildDocx, download:download, fname:fname};
+window.ZWExport={exportBook:exportBook, exportShared:exportShared, toMingshu:toMingshu, buildDocx:buildDocx, download:download, fname:fname};
 })();
