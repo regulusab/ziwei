@@ -211,5 +211,6 @@ export async function renderDocx(doc, opts = {}) {
     },
     sections: [{ properties: { page: { size: { width: PAGE_W, height: PAGE_H }, margin: MAR } }, headers: { default: header }, footers: { default: footer }, children: out }],
   });
-  return Packer.toBlob ? (typeof Blob !== 'undefined' ? Packer.toBlob(d) : Packer.toBuffer(d)) : Packer.toBuffer(d);
+  // 一律回傳 Uint8Array（瀏覽器與 Node 相同）；Blob 由 mingshu-export.js 統一包裝
+  return new Uint8Array(await Packer.toArrayBuffer(d));
 }

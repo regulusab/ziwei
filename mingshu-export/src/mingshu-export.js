@@ -5,7 +5,7 @@
 import { normalize, defaultFilename, SCHEMA_ID } from './schema.js';
 
 export { SCHEMA_ID };
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 
 const MIME = { pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
 
@@ -17,6 +17,8 @@ export function validateMingshu(doc) {
 
 /**
  * 產生命書檔案（不下載）。回傳 {blob, bytes, filename, mime, pages?, missingGlyphs?, warnings}
+ *   bytes：一律是 Uint8Array（PDF、Word 都一樣，瀏覽器與 Node 都一樣），Node 可直接 fs.writeFileSync
+ *   blob ：有全域 Blob 時（瀏覽器、Node 18+）為 Blob，下載／分享用；否則為 null
  * opts: format 'pdf'|'docx'；filename；fontBase（字型資料夾網址，預設為本模組旁的 fonts/）；
  *       bold（PDF 是否載入粗體字型，預設 true）；docxFont {cjk, latin}；loadFont（自訂字型讀取函式）
  */
@@ -36,7 +38,9 @@ export async function renderMingshu(input, opts = {}) {
     const { renderDocx } = await import('./docx.js');
     bytes = await renderDocx(doc, opts);
   }
-  const blob = typeof Blob !== 'undefined' ? (bytes instanceof Blob ? bytes : new Blob([bytes], { type: MIME[format] })) : null;
+  if (typeof Blob !== 'undefined' && bytes instanceof Blob) bytes = new Uint8Array(await bytes.arrayBuffer());
+  else if (!(bytes instanceof Uint8Array)) bytes = new Uint8Array(bytes);
+  const blob = typeof Blob !== 'undefined' ? new Blob([bytes], { type: MIME[format] }) : null;
   return { blob, bytes, filename, mime: MIME[format], pages, missingGlyphs: missing || [], warnings };
 }
 

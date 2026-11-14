@@ -11,7 +11,7 @@ function block(b){
     case 'quote': return '<blockquote>'+e(b.text)+'<cite>——'+e(b.source)+'</cite></blockquote>';
     case 'list': return '<ul>'+b.items.map(function(i){return '<li>'+e(i)+'</li>';}).join('')+'</ul>';
     case 'table': return '<div class="tw"><table><thead><tr>'+b.head.map(function(h){return '<th>'+e(h)+'</th>';}).join('')+'</tr></thead><tbody>'+
-      b.rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+e(c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+      b.rows.map(function(r){return '<tr>'+r.map(function(c){return '<td'+(/^\d+[–-]\d+( 歲)?$/.test(String(c))?' class="nw"':'')+'>'+e(c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
   } return '';
 }
 function render(book,el){

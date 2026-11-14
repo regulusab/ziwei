@@ -50,6 +50,7 @@ function init(){
     act($('print'),function(){ return ZWExport.exportBook(LAST,'print'); });
     act($('dlJson'),function(){ return ZWExport.exportBook(LAST,'json'); });
     act($('share'),share);
+    document.querySelectorAll('.more .menu button').forEach(function(b){ b.addEventListener('click',function(){ b.closest('details').open=false; }); });
     ZWCases.init();
     var u=ZWCases.fromURL(); if(u) apply(u); else { $('sdate').value='1990-06-15'; $('tidx').value=5; run(); }
   }).catch(function(e){ msg('資料載入失敗：'+e.message+'（請以網址開啟本站）'); });

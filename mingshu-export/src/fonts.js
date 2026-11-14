@@ -2,19 +2,42 @@
 // 再由 pdf-lib 子集嵌入（PDF 只包含用到的字形）。
 const bufCache = new Map();
 
+const IS_NODE = typeof process !== 'undefined' && !!process.versions?.node && typeof window === 'undefined';
+
+// 字型資料夾位置 → URL 物件（結尾一定補 /）。
+// 瀏覽器：相對網址以目前頁面為準。Node：接受 file:// 網址、絕對或相對檔案路徑（相對路徑以 process.cwd() 為準）、http(s) 網址。
+async function resolveBase(fontBase) {
+  if (!fontBase) return new URL('../fonts/', import.meta.url);
+  let s = fontBase instanceof URL ? fontBase.href : String(fontBase);
+  if (IS_NODE && !/^[a-z][a-z0-9+.-]*:/i.test(s)) {           // 純檔案路徑（Windows 的 C:\ 也會走這裡）
+    const { pathToFileURL } = await import('node:url');
+    s = pathToFileURL(s).href;
+  } else if (IS_NODE && /^[a-z]:[\\/]/i.test(s)) {
+    const { pathToFileURL } = await import('node:url');
+    s = pathToFileURL(s).href;
+  }
+  if (!s.endsWith('/')) s += '/';
+  return new URL(s, globalThis.location ? globalThis.location.href : undefined);
+}
+
+async function readUrl(url, name) {
+  if (url.startsWith('file:')) {
+    if (!IS_NODE) throw new Error(`字型載入失敗：${name}（瀏覽器不能讀 file:// 網址，請用 http(s) 開啟網頁）`);
+    const [{ readFile }, { fileURLToPath }] = await Promise.all([import('node:fs/promises'), import('node:url')]);
+    try { const b = await readFile(fileURLToPath(url)); return new Uint8Array(b.buffer, b.byteOffset, b.byteLength); }
+    catch (e) { throw new Error(`字型載入失敗：${name}（${e.code || e.message}：${fileURLToPath(url)}）`); }
+  }
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`字型載入失敗：${name}（HTTP ${r.status}）`);
+  return r.arrayBuffer();
+}
+
 export function makeLoader(opts = {}) {
-  if (opts.loadFont) return opts.loadFont; // 自訂：name => Promise<ArrayBuffer|Uint8Array>（Node 測試或特殊部署用）
-  const base = opts.fontBase
-    ? new URL(opts.fontBase, globalThis.location ? globalThis.location.href : undefined)
-    : new URL('../fonts/', import.meta.url);
+  if (opts.loadFont) return opts.loadFont; // 自訂：name => Promise<ArrayBuffer|Uint8Array>
+  const baseP = resolveBase(opts.fontBase);
   return async name => {
-    const url = new URL(name, base).href;
-    if (!bufCache.has(url)) {
-      bufCache.set(url, fetch(url).then(r => {
-        if (!r.ok) throw new Error(`字型載入失敗：${name}（HTTP ${r.status}）`);
-        return r.arrayBuffer();
-      }));
-    }
+    const url = new URL(name, await baseP).href;
+    if (!bufCache.has(url)) bufCache.set(url, readUrl(url, name));
     try { return await bufCache.get(url); } catch (e) { bufCache.delete(url); throw e; }
   };
 }
