@@ -9,7 +9,7 @@ var D, C, F, used;
 function Q(){ return D.quanshu; }
 function src(s){ return '《'+s.book+'》'+s.juan+'・'+s.title; }
 function cite(s){ var k=src(s); if(used.indexOf(k)<0) used.push(k); return k; }
-function quote(text,s){ return {type:'quote',text:text,source:cite(s)}; }
+function quote(text,s){ return {type:'quote',text:text,source:cite(s),src:{book:s.book,chapter:s.juan+'・'+s.title,edition:s.edition,verified:true}}; }
 function fuLine(key,find){ var f=Q().fu[key]; if(!f) return null; for(var i=0;i<f.lines.length;i++) if(f.lines[i].indexOf(find)>=0) return quote(f.lines[i],f.source); return null; }
 function P(t){ return {type:'p',text:t}; } function H(t){ return {type:'h3',text:t}; } function N(t){ return {type:'note',text:t}; }
 function star(n){ return D.stars.stars[n]; }

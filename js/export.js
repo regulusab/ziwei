@@ -51,12 +51,38 @@ function buildDocx(book){
     return D.Packer.toBlob(doc);
   });
 }
+// 轉成共用匯出模組（Ab2 mingshu-export）的 mingshu/1 格式
+function toMingshu(book){
+  var C=book.chartRef, R=C.raw, pal=C.pal.map(function(p){
+    var hua=function(n){ return C.sihua.filter(function(x){return x.star===n;}).map(function(x){return x.hua;}); };
+    var self=function(n){ return p.fly.filter(function(f){return f.self&&f.star===n;}).map(function(f){return f.hua;}); };
+    return {branch:p.br,stem:p.stem,name:p.name,isBody:!!p.isBodyPalace,
+      major:p.major.map(function(s){return {name:s.name,bright:s.brightness||'',hua:hua(s.name),selfHua:self(s.name)};}),
+      minor:p.minor.map(function(s){return {name:s.name,bright:s.brightness||'',hua:hua(s.name),selfHua:self(s.name)};}),
+      adjective:p.adj.map(function(s){return s.name;}),labels:[p.changsheng12,p.boshi12,p.jiangqian12,p.suiqian12],decade:p.decadal.range,ages:p.ages.slice(0,5)}; });
+  var sec=[];
+  book.sections.forEach(function(s){ sec.push({type:'heading',level:1,text:s.heading});
+    s.blocks.forEach(function(b){
+      if(b.type==='h3') sec.push({type:'heading',level:3,text:b.text});
+      else if(b.type==='p') sec.push({type:'paragraph',text:b.text});
+      else if(b.type==='note') sec.push({type:'note',text:b.text});
+      else if(b.type==='quote') sec.push({type:'quote',text:b.text,source:b.src||b.source});
+      else if(b.type==='list') sec.push({type:'list',style:'bullet',items:b.items});
+      else if(b.type==='table') sec.push({type:'table',header:b.head,rows:b.rows});
+    }); });
+  return {schema:'mingshu/1',
+    meta:{title:'紫微斗數命書',siteTitle:'紫微斗數論命',site:'ziwei',siteUrl:'https://regulusab.github.io/ziwei/',name:C.S.name||'',gender:C.S.gender,
+      birth:{solar:R.solarDate+' '+R.time+'（'+R.timeRange+'）',lunar:R.lunarDate+' '+R.time},generatedAt:new Date().toISOString()},
+    chart:{type:'ziwei',title:'紫微斗數命盤',subtitle:'本命盤',palaces:pal,
+      center:{rows:[['四柱',R.chineseDate],['五行局',R.fiveElementsClass],['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br:'')],['命主／身主',R.soul+'／'+R.body],['生年四化',C.sihua.map(function(x){return x.star+x.hua;}).join(' ')]]}},
+    sections:sec};
+}
 function exportBook(book,fmt){
   if(fmt==='docx') return buildDocx(book).then(function(b){ download(b,fname(book,'docx')); return b; });
   if(fmt==='print'){ document.querySelectorAll('details').forEach(function(d){d.open=true;}); window.print(); return Promise.resolve(); }
-  if(fmt==='json'){ var o=JSON.parse(JSON.stringify({title:book.title,subtitle:book.subtitle,meta:book.meta,sections:book.sections,sources:book.sources,generated:book.generated}));
+  if(fmt==='json'){ var o=toMingshu(book);
     var b=new Blob([JSON.stringify(o,null,1)],{type:'application/json'}); download(b,fname(book,'json')); return Promise.resolve(b); }
   return Promise.reject(new Error('不支援的格式'));
 }
-window.ZWExport={exportBook:exportBook, buildDocx:buildDocx, download:download, fname:fname};
+window.ZWExport={exportBook:exportBook, toMingshu:toMingshu, buildDocx:buildDocx, download:download, fname:fname};
 })();
