@@ -63,17 +63,20 @@ function flow(C,Y){
   return F;
 }
 // 流日：指定西曆日期（YYYY-MM-DD）的流日命宮、流日四化與流日星（日羊、日陀等）
-function day(C,ds){
-  var h=C.a.horoscope(ds, +C.S.tidx), J=JSON.parse(JSON.stringify(h)), d=J.daily, m=J.monthly;
+function day(C,ds,hi){
+  // 流日以日期本身推算，不受出生時辰影響；hi 為流時時辰（0 子～11 亥，皆屬當日）
+  hi=(hi==null||isNaN(+hi))?0:Math.max(0,Math.min(11,+hi));
+  var h=C.a.horoscope(ds, hi), J=JSON.parse(JSON.stringify(h)), d=J.daily, m=J.monthly, t=J.hourly;
   function mapNames(arr){ var o={}; arr.forEach(function(n,i){ o[n]=C.pal[i]; }); return o; }
   function hua(st){ return HUA.map(function(hh,i){ var s=C.T[st][i]; return {hua:hh,star:s,pal:findStar(C,s)}; }); }
   return {date:ds, lunar:J.lunarDate, gz:d.heavenlyStem+d.earthlyBranch, stem:d.heavenlyStem, ming:C.pal[d.index], map:mapNames(d.palaceNames), hua:hua(d.heavenlyStem), stars:d.stars||[],
     month:{gz:m.heavenlyStem+m.earthlyBranch, ming:C.pal[m.index], map:mapNames(m.palaceNames), hua:hua(m.heavenlyStem)},
-    year:{gz:J.yearly.heavenlyStem+J.yearly.earthlyBranch, ming:C.pal[J.yearly.index]}, nominalAge:J.age.nominalAge};
+    year:{gz:J.yearly.heavenlyStem+J.yearly.earthlyBranch, ming:C.pal[J.yearly.index]}, nominalAge:J.age.nominalAge,
+    hour:{idx:hi, name:SHICHEN[hi].replace('早','')+'時', range:SHI_RANGE[hi], gz:t.heavenlyStem+t.earthlyBranch, ming:C.pal[t.index], map:mapNames(t.palaceNames), hua:hua(t.heavenlyStem), stars:t.stars||[]}};
 }
 function addDays(ds,n){ var p=ds.split('-'), t=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]+n)); return t.toISOString().slice(0,10); }
 function decades(C){ return C.pal.slice().sort(function(x,y){return x.decadal.range[0]-y.decadal.range[0];}); }
 window.ZW={BR:BR,ST:ST,SHICHEN:SHICHEN,SHI_RANGE:SHI_RANGE,MAJOR:MAJOR,LUCKY:LUCKY,UNLUCKY:UNLUCKY,HUA:HUA,BASE:BASE,
-  compute:function(S){ var C=compute(S); C.lunarYearOf=function(Y){return Y;}; C.flow=function(Y,ds){ var F=flow(C,Y); if(ds&&/^\d{4}-\d{2}-\d{2}$/.test(ds)){ try{ F.day=day(C,ds); F.tMap=F.day.map; F.tStars=F.day.stars; F.week=[0,1,2,3,4,5,6].map(function(n){ return n?day(C,addDays(ds,n)):F.day; }); }catch(e){ F.day=null; } } return F; }; C.day=function(ds){return day(C,ds);}; return C; },
+  compute:function(S){ var C=compute(S); C.lunarYearOf=function(Y){return Y;}; C.flow=function(Y,ds,hi){ var F=flow(C,Y); if(ds&&/^\d{4}-\d{2}-\d{2}$/.test(ds)){ try{ F.day=day(C,ds,hi); F.tMap=F.day.map; F.tStars=F.day.stars; F.hour=F.day.hour; F.hMap=F.hour.map; F.hStars=F.hour.stars; F.week=[0,1,2,3,4,5,6].map(function(n){ return n?day(C,addDays(ds,n),0):F.day; }); }catch(e){ F.day=null; F.hour=null; } } return F; }; C.day=function(ds,hi){return day(C,ds,hi);}; return C; },
   timeToIndex:timeToIndex, findStar:findStar, rel:rel, sanfang:sanfang, names:names, decades:decades, table:table, addDays:addDays};
 })();

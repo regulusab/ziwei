@@ -6,7 +6,7 @@ function $(id){ return document.getElementById(id); }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY))||[]; }catch(e){ return []; } }
 function save(l){ localStorage.setItem(KEY,JSON.stringify(l)); }
 function msg(t){ $('msg').textContent=t; }
-var MAP={cal:'c',date:'d',leap:'l',tidx:'t',gender:'g',zi:'z',table:'s',yearDivide:'yd',flowYear:'y',flowDay:'fd',name:'n'};
+var MAP={cal:'c',date:'d',leap:'l',tidx:'t',gender:'g',zi:'z',table:'s',yearDivide:'yd',flowYear:'y',flowDay:'fd',flowHour:'fh',name:'n'};
 function toURL(S){ var q=[]; for(var k in MAP){ if(S[k]!==undefined&&S[k]!=='') q.push(MAP[k]+'='+encodeURIComponent(S[k])); } return location.origin+location.pathname+'#'+q.join('&'); }
 function fromURL(){ var h=location.hash.replace(/^#/,''); if(!h) return null; var o={}, inv={}; for(var k in MAP) inv[MAP[k]]=k;
   h.split('&').forEach(function(kv){ var p=kv.split('='); if(inv[p[0]]) o[inv[p[0]]]=decodeURIComponent(p[1]||''); }); return o.date?o:null; }

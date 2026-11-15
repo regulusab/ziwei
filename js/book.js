@@ -283,6 +283,32 @@ function secDaily(){
   var rows=[]; D.palaces.order.forEach(function(pn){ var q=d.map[pn]; rows.push(['流日'+(pn==='命宮'?'命宮':pn),q.stem+q.br,'本命'+palName(q),q.major.map(function(s){return s.name;}).join('、')||'—',
     d.hua.filter(function(x){return x.pal===q;}).map(function(x){return x.star+'化'+x.hua;}).join('、'),(d.stars[q.idx]||[]).map(function(s){return s.name;}).join(' ')]); });
   b.push({type:'table',head:['流日宮位','干支','落本命','主星','流日四化','流日星'],rows:rows});
+  // 流月四化落入流日各宮
+  var dn=function(map,q){ for(var k in map) if(map[k]===q) return k; return null; }, pn2=function(k){ return k==='命宮'?'命宮':k+'宮'; }, hr=d.hour;
+  b.push(H('流月四化落入流日各宮'));
+  b.push(P('流月'+d.month.gz+'（流月命宮在'+d.month.ming.br+'），月干'+d.month.gz.charAt(0)+'四化落在當日哪一個流日宮位，代表本月的機緣與壓力在這一天由哪方面的事情帶出。'));
+  var mr=[]; d.month.hua.forEach(function(x){ if(!x.pal){ mr.push(['化'+x.hua,x.star,'（不在盤中）','—',hr?'—':null,'—'].filter(function(c){return c!==null;})); return; }
+    var k=dn(d.map,x.pal), mk=dn(d.month.map,x.pal), hk=hr?dn(hr.map,x.pal):null;
+    b.push(P('流月'+x.star+'化'+x.hua+'（入流月'+pn2(mk)+'）落入流日'+pn2(k)+'（本命'+palName(x.pal)+'）：'+D.sihua.into[k][x.hua]));
+    mr.push(['化'+x.hua,x.star,'本命'+palName(x.pal)+'（'+x.pal.br+'）','流日'+pn2(k)].concat(hr?['流時'+pn2(hk)]:[]).concat([D.sihua.into[k][x.hua]])); });
+  b.push({type:'table',head:['流月四化','星曜','本命宮位','落入流日宮位'].concat(hr?['落入流時宮位']:[]).concat(['現象（本站整理）']),rows:mr});
+  var mj=d.month.hua[3].pal, dj=d.hua[3].pal;
+  if(mj&&mj===dj) b.push(N('流月化忌與流日化忌同落本命'+palName(mj)+'（流日'+pn2(dn(d.map,mj))+'），當日此宮之事宜格外謹慎。'));
+  // 流時
+  if(hr){
+    b.push(H('流時：'+hr.name+'（'+hr.range+'）'+hr.gz));
+    b.push(P('流時'+hr.gz+'，流時命宮在'+hr.ming.br+'（本命'+palName(hr.ming)+'，流日'+pn2(dn(d.map,hr.ming))+'）。流時命宮'+(hr.ming.major.length?'主星'+hr.ming.major.map(function(x){return x.name+bright(x);}).join('、')+'：'+hr.ming.major.map(function(x){return star(x.name).kw;}).join('；'):'無主星，借對宮'+ZW.rel(C,hr.ming,6).major.map(function(x){return x.name;}).join('、')+'論')+'。'));
+    b.push(N('本站所收《紫微斗數全書》錄文未見流時專論；流時以流日命宮起子時、逐時順行，時干依日干起（五鼠遁），為後世通行推法，依 iztro 實作（來源待核）。23:00 以後的晚子時屬翌日，請選翌日的子時。'));
+    hr.hua.forEach(function(x){ if(!x.pal) return; var k=dn(hr.map,x.pal);
+      b.push(P(x.star+'化'+x.hua+'入流時'+pn2(k)+'（本命'+palName(x.pal)+'，流日'+pn2(dn(d.map,x.pal))+'）：'+D.sihua.into[k][x.hua])); });
+    var hs=[]; for(var i=0;i<12;i++) (hr.stars[i]||[]).forEach(function(x){ if(/^時(祿|羊|陀|馬|魁|鉞|昌|曲)$/.test(x.name)) hs.push(x.name+'在'+C.pal[i].br+'（本命'+palName(C.pal[i])+'）'); });
+    if(hs.length) b.push(P('流時星：'+hs.join('、')+'。'));
+    var hrows=[]; D.palaces.order.forEach(function(k){ var q=hr.map[k]; hrows.push(['流時'+(k==='命宮'?'命宮':k),q.stem+q.br,'本命'+palName(q),'流日'+pn2(dn(d.map,q)),q.major.map(function(x){return x.name;}).join('、')||'—',
+      hr.hua.filter(function(x){return x.pal===q;}).map(function(x){return x.star+'化'+x.hua;}).join('、'),(hr.stars[q.idx]||[]).map(function(x){return x.name;}).join(' ')]); });
+    b.push(N('流月四化落入流日／流時宮位的現象為本站依既有四化、宮位資料組合的白話摘要，非古籍引文，亦非確定預言。排法實作出處：iztro 2.6.5 FunctionalAstrolabe.horoscope → monthly / daily / hourly（MIT）：https://github.com/SylarLong/iztro/tree/v2.6.5/src/astro 。流時起法的古籍依據仍標示來源待核。'));
+    b.push(H('流時十二宮'));
+    b.push({type:'table',head:['流時宮位','干支','落本命','落流日','主星','流時四化','流時星'],rows:hrows});
+  }
   b.push(H('七日流日一覽'));
   var wk=(F.week||[d]).map(function(w){
     var jiMing=w.hua[3].pal===w.ming, luMing=w.hua[0].pal===w.ming, tough=(w.stars[w.ming.idx]||[]).filter(function(s){return s.type==='tough';}).length;
@@ -291,7 +317,7 @@ function secDaily(){
     return [w.date.slice(5).replace('-','/'),w.lunar.replace(/^.*年/,''),w.gz,w.ming.br+'（本命'+palName(w.ming)+'）',w.hua[0].star+'祿→'+(lu||'—'),w.hua[3].star+'忌→'+(ji||'—'),tip]; });
   b.push({type:'table',head:['日期','農曆','日干支','流日命宮','化祿入','化忌入','提示（本站整理）'],rows:wk});
   b.push(N('「提示」依流日化祿、化忌與日羊日陀是否落在流日命宮簡單判讀，僅供參考。'));
-  return sec('daily','流日分析',b);
+  return sec('daily','流日・流時分析',b);
 }
 // ---------- 幸運密碼 ----------
 function secLucky(){
@@ -394,7 +420,7 @@ function build(chart,flowData,data){
   var R=C.raw;
   var book={title:'紫微斗數命書'+(C.S.name?'：'+C.S.name:''), subtitle:R.solarDate+' '+R.time+'　'+C.S.gender,
     meta:[['姓名',C.S.name||'—'],['性別',C.S.gender],['西曆',R.solarDate+' '+R.time+'（'+R.timeRange+'）'],['農曆',R.lunarDate],['四柱',R.chineseDate],['五行局',R.fiveElementsClass],
-      ['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br+'（'+C.body.name+'）':'')],['命主／身主',R.soul+'／'+R.body],['流年',F.year+' '+F.gz+'（虛歲 '+F.nominalAge+'）']].concat(F.day?[['流日',F.day.date+' '+F.day.gz+'（農曆'+F.day.lunar+'）']]:[]),
+      ['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br+'（'+C.body.name+'）':'')],['命主／身主',R.soul+'／'+R.body],['流年',F.year+' '+F.gz+'（虛歲 '+F.nominalAge+'）']].concat(F.day?[['流日',F.day.date+' '+F.day.gz+'（農曆'+F.day.lunar+'）']]:[]).concat(F.hour?[['流時',F.hour.name+'（'+F.hour.range+'）'+F.hour.gz]]:[]),
     sections:[]};
   [secChart,secMingFu,secPalaces,secPatterns,secSihua,secDecadal,secYearly,secMonthly,secDaily,secTopics,secLucky,secRemedy,secAppendix].forEach(function(fn){
     try{ book.sections.push(fn()); }catch(e){ book.sections.push(sec('err','（此節產生失敗）',[N(String(e&&e.message||e))])); if(window.console) console.error(e); } });
