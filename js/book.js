@@ -7,9 +7,9 @@
 'use strict';
 var D, C, F, used;
 function Q(){ return D.quanshu; }
-function src(s){ return '《'+s.book+'》'+s.juan+'・'+s.title; }
+function src(s){ return '《'+s.book+'》'+s.juan+(s.title?'・'+s.title:''); }
 function cite(s){ var k=src(s); if(used.indexOf(k)<0) used.push(k); return k; }
-function quote(text,s){ return {type:'quote',text:text,source:cite(s),src:{book:s.book,chapter:s.juan+'・'+s.title,edition:s.edition,verified:true}}; }
+function quote(text,s){ return {type:'quote',text:text,source:cite(s),src:{book:s.book,chapter:s.juan+(s.title?'・'+s.title:''),edition:s.edition,verified:true}}; }
 function fuLine(key,find){ var f=Q().fu[key]; if(!f) return null; for(var i=0;i<f.lines.length;i++) if(f.lines[i].indexOf(find)>=0) return quote(f.lines[i],f.source); return null; }
 function P(t){ return {type:'p',text:t}; } function H(t){ return {type:'h3',text:t}; } function N(t){ return {type:'note',text:t}; }
 function star(n){ return D.stars.stars[n]; }
@@ -166,6 +166,8 @@ function secDecadal(){
   var rows2=[]; D.palaces.order.forEach(function(pn){ var q=F.dMap[pn]; rows2.push(['大限'+(pn==='命宮'?'命宮':pn),q.stem+q.br,'本命'+palName(q),q.major.map(function(s){return s.name;}).join('、')||'—',
     F.dHua.filter(function(x){return x.pal===q;}).map(function(x){return x.star+'化'+x.hua;}).join('、')]); });
   b.push({type:'table',head:['大限宮位','干支','落本命','主星','大限四化落入'],rows:rows2});
+  b.push(H('大限十二宮逐宮論述'));
+  b=b.concat(flowProse('大限',F.dMap,F.dHua,F.dStars,'這十年'));
   b.push(H('大限四化'));
   F.dHua.forEach(function(x){ if(!x.pal) return; var dn=null; for(var k in F.dMap) if(F.dMap[k]===x.pal) dn=k;
     b.push(P(x.star+'化'+x.hua+'入大限'+(dn==='命宮'?'命宮':dn+'宮')+'（本命'+palName(x.pal)+'）：'+D.sihua.into[dn][x.hua])); });
@@ -186,6 +188,8 @@ function secYearly(){
   var rows=[]; D.palaces.order.forEach(function(pn){ var q=F.yMap[pn]; rows.push(['流年'+(pn==='命宮'?'命宮':pn),q.stem+q.br,'本命'+palName(q),q.major.map(function(s){return s.name;}).join('、')||'—',
     F.yHua.filter(function(x){return x.pal===q;}).map(function(x){return x.star+'化'+x.hua;}).join('、'), (F.yStars[q.idx]||[]).map(function(s){return s.name;}).join(' ')]); });
   b.push({type:'table',head:['流年宮位','干支','落本命','主星','流年四化','流年星'],rows:rows});
+  b.push(H('流年十二宮逐宮論述'));
+  b=b.concat(flowProse('流年',F.yMap,F.yHua,F.yStars,'今年'));
   // 疊忌提示
   var ji=[C.sihua[3].pal,F.dHua[3].pal,F.yHua[3].pal];
   if(ji[2]&&(ji[2]===ji[0]||ji[2]===ji[1])) b.push(N('流年化忌與'+(ji[2]===ji[0]?'生年':'大限')+'化忌同落本命'+palName(ji[2])+'（忌星重疊），今年此宮之事宜格外謹慎。'));
@@ -230,7 +234,153 @@ function secTopics(){
     +'陰煞在'+(C.pal.filter(function(p){return p.adj.some(function(s){return s.name==='陰煞';});}).map(palName).join('、')||'—')+'；僕役宮主星'+stars(py).join('、')+(sha(py).length?'，見'+sha(py).join('、')+'，交友宜慎選。':'。')));
   return sec('topics','專題論斷',b);
 }
-// ---------- 十、附錄 ----------
+
+// ---------- 運限逐宮論述（大限、流年共用）：依星性、四化、運星組合成白話 ----------
+var GOODHUA=['祿','權','科'];
+function shaIn(p){ return p.minor.filter(function(s){return ZW.UNLUCKY.indexOf(s.name)>=0;}).map(function(s){return s.name;}); }
+function luckIn(p){ return p.minor.filter(function(s){return ZW.LUCKY.indexOf(s.name)>=0||s.name==='祿存';}).map(function(s){return s.name;}); }
+function flowProse(kind,map,hua,fstars,span){
+  var out=[];
+  D.palaces.order.forEach(function(pn){
+    var q=map[pn], info=D.palaces.palaces[pn], label=kind+(pn==='命宮'?'命宮':pn+'宮'), t=[], score=0;
+    var ms=q.major.length?q.major:ZW.rel(C,q,6).major, kws=ms.slice(0,2).map(function(s){ var st=star(s.name); return st?'「'+st.kw.split('、')[0]+'」':''; }).filter(Boolean);
+    t.push(label+'在'+q.stem+q.br+'，疊本命'+palName(q)+'。'+(q.major.length?'主星'+q.major.map(function(s){return s.name+bright(s);}).join('、'):'本宮無主星，借對宮'+(ms.map(function(s){return s.name;}).join('、')||'星曜'))+(kws.length?'，帶有'+kws.join('、')+'的色彩':'')+'。');
+    if(pn!==q.name) t.push(span+'「'+info.domain.split('、').slice(0,2).join('、')+'」之事，常與本命'+palName(q)+'所主的'+D.palaces.palaces[q.name].domain.split('、')[0]+'相牽動。');
+    var good=luckIn(q), bad=shaIn(q);
+    if(good.length){ t.push('宮內有'+good.join('、')+'相助。'); score+=good.length; }
+    if(bad.length){ t.push('宮內有'+bad.join('、')+'，'+bad.map(function(n){return star(n).kw.split('、')[0];}).join('、')+'之象較明顯。'); score-=bad.length; }
+    hua.forEach(function(x){ if(x.pal!==q) return; t.push(kind+x.star+'化'+x.hua+'入此宮：'+D.sihua.into[pn][x.hua]); score+=x.hua==='忌'?-2:1; });
+    C.sihua.forEach(function(x){ if(x.pal===q) t.push('本命生年'+x.star+'化'+x.hua+'也在此宮'+(x.hua==='忌'&&hua[3].pal===q?'，與'+kind+'化忌重疊（雙忌），此宮之事尤宜謹慎':'')+'。'); });
+    var fs=(fstars&&fstars[q.idx])||[], ty={}; fs.forEach(function(s){ (ty[s.type]=ty[s.type]||[]).push(s.name); });
+    if(ty.tough){ t.push(ty.tough.join('、')+'同臨，宜防衝突、拖延與意外。'); score-=ty.tough.length; }
+    if(ty.lucun){ t.push(ty.lucun.join('、')+'到此，有進財、守成之機。'); score+=1; }
+    if(ty.soft){ t.push(ty.soft.join('、')+'到此，利考試、文書與貴人。'); score+=1; }
+    if(ty.tianma) t.push(ty.tianma.join('、')+'到此，主奔波、變動或遠行。');
+    if(ty.flower) t.push(ty.flower.join('、')+'到此，人緣與感情機會增加。');
+    t.push('綜合來看，'+span+info.domain.split('、')[0]+'方面'+(score>=2?'較為順遂，可積極把握。':score<=-2?'壓力較大，宜穩健保守、多留餘地。':'吉凶互見，平穩中有起伏。'));
+    out.push(P('◆ '+t.join('')));
+  });
+  out.push(N(kind+'逐宮論述為本站依星曜通性、四化通則與運星組合產生的白話提示，不是古籍原文；論斷仍須合看三方四正與本命。'));
+  return out;
+}
+// ---------- 流日 ----------
+function secDaily(){
+  var d=F.day, b=[];
+  if(!d) return sec('daily','流日分析',[P('未指定流日日期。')]);
+  b.push(P('流日日期：'+d.date+'（農曆'+d.lunar+'）。當日流年'+d.year.gz+'、流月'+d.month.gz+'、流日'+d.gz+'；流日命宮在'+d.ming.br+'（本命'+palName(d.ming)+'），流月命宮在'+d.month.ming.br+'（本命'+palName(d.month.ming)+'）。'));
+  if(d.year.gz!==F.gz) b.push(N('此日期所屬的流年（'+d.year.gz+'）與本命書所選流年（'+F.gz+'）不同，流日以日期本身推算。'));
+  b.push(N('本站所收《紫微斗數全書》錄文未見流日專論；流日起法（以流月命宮起初一，逐日順行）為後世通行推法，依 iztro 實作，僅供參考。'));
+  b.push(H('流日命宮'));
+  var ms=d.ming.major.length?d.ming.major:ZW.rel(C,d.ming,6).major;
+  b.push(P('流日命宮'+(d.ming.major.length?'主星':'無主星，借對宮')+ms.map(function(s){return s.name+bright(s);}).join('、')+'：'+ms.map(function(s){return star(s.name).kw;}).join('；')+'。'+(shaIn(d.ming).length?'宮內有'+shaIn(d.ming).join('、')+'，當日行事宜放慢。':'')));
+  b.push(H('流日四化'));
+  d.hua.forEach(function(x){ if(!x.pal) return; var dn=null; for(var k in d.map) if(d.map[k]===x.pal) dn=k;
+    b.push(P(x.star+'化'+x.hua+'入流日'+(dn==='命宮'?'命宮':dn+'宮')+'（本命'+palName(x.pal)+'）：'+D.sihua.into[dn][x.hua])); });
+  var where2=function(nm){ for(var i=0;i<12;i++) if((d.stars[i]||[]).some(function(s){return s.name===nm;})) return C.pal[i]; return null; };
+  var ly=['日祿','日羊','日陀','日馬','日魁','日鉞','日昌','日曲'].map(function(n){ var p=where2(n); return p?n+'在'+p.br+'（本命'+palName(p)+'）':null; }).filter(Boolean);
+  if(ly.length) b.push(P('流日星：'+ly.join('、')+'。'));
+  b.push(H('流日十二宮'));
+  var rows=[]; D.palaces.order.forEach(function(pn){ var q=d.map[pn]; rows.push(['流日'+(pn==='命宮'?'命宮':pn),q.stem+q.br,'本命'+palName(q),q.major.map(function(s){return s.name;}).join('、')||'—',
+    d.hua.filter(function(x){return x.pal===q;}).map(function(x){return x.star+'化'+x.hua;}).join('、'),(d.stars[q.idx]||[]).map(function(s){return s.name;}).join(' ')]); });
+  b.push({type:'table',head:['流日宮位','干支','落本命','主星','流日四化','流日星'],rows:rows});
+  b.push(H('七日流日一覽'));
+  var wk=(F.week||[d]).map(function(w){
+    var jiMing=w.hua[3].pal===w.ming, luMing=w.hua[0].pal===w.ming, tough=(w.stars[w.ming.idx]||[]).filter(function(s){return s.type==='tough';}).length;
+    var tip=jiMing?'化忌入命，宜謹慎、少做重大決定':tough?'日羊／日陀臨命，行事放慢、防急躁':luMing?'化祿入命，較順，適合推動事情':'平';
+    var lu=null, ji=null; for(var k in w.map){ if(w.map[k]===w.hua[0].pal) lu=k; if(w.map[k]===w.hua[3].pal) ji=k; }
+    return [w.date.slice(5).replace('-','/'),w.lunar.replace(/^.*年/,''),w.gz,w.ming.br+'（本命'+palName(w.ming)+'）',w.hua[0].star+'祿→'+(lu||'—'),w.hua[3].star+'忌→'+(ji||'—'),tip]; });
+  b.push({type:'table',head:['日期','農曆','日干支','流日命宮','化祿入','化忌入','提示（本站整理）'],rows:wk});
+  b.push(N('「提示」依流日化祿、化忌與日羊日陀是否落在流日命宮簡單判讀，僅供參考。'));
+  return sec('daily','流日分析',b);
+}
+// ---------- 幸運密碼 ----------
+function secLucky(){
+  var L=D.lucky, R=C.raw, b=[], ju=R.fiveElementsClass.charAt(0), shengMe=null;
+  for(var k in L.sheng) if(L.sheng[k]===ju) shengMe=k;
+  var wx=function(n){ var s=star(n); return s&&s.wx?s.wx:'—'; };
+  b.push(P('本節依命盤的五行局、命主、身主與吉星所在宮位，整理出幸運五行、顏色、數字與方位，作為日常開運的參考。'));
+  b.push(H('本命五行'));
+  b.push(P('五行局為'+R.fiveElementsClass+'，命盤本氣屬'+ju+'；依五行相生，'+shengMe+'生'+ju+'，故以'+shengMe+'為生扶之五行，'+ju+'為比和之五行。命主'+R.soul+'（'+wx(R.soul)+'）、身主'+R.body+'（'+wx(R.body)+'）；命宮主星'+((C.ming.major.length?C.ming.major:ZW.rel(C,C.ming,6).major).map(function(s){return s.name+'（'+wx(s.name)+'）';}).join('、')||'—')+'。'));
+  b.push(quote(L.hongfan.text,L.hongfan.source));
+  [shengMe,ju].forEach(function(el,i){ var w=L.wuxing[el];
+    b.push(H((i?'第二':'第一')+'幸運五行：'+el+(i?'（比和）':'（生扶）')));
+    b.push({type:'list',items:['幸運顏色：'+w.color,'吉祥數字：'+w.nums.join('、'),'有利方位：'+w.dir,'有利季節：'+w.season,'有利日子：'+w.stems.split('').join('、')+'日（日干為'+w.stems.split('').join('或')+'）']});
+    b.push(quote(w.quote.text,w.quote.source)); b.push(quote(w.dirQuote.text,w.dirQuote.source)); });
+  b.push(N(L.numNote));
+  b.push(H('吉祥數字'));
+  var nums=L.wuxing[shengMe].nums.concat(L.wuxing[ju].nums);
+  b.push(P('綜合兩個幸運五行，吉祥數字為 '+nums.join('、')+'。選車牌、電話、密碼等號碼時，可優先考慮含有這些數字的組合。'));
+  b.push(H('吉方與貴人方'));
+  var rows=[]; function add(lbl,p){ if(p) rows.push([lbl,palName(p),p.br,L.branchDir[p.br]]); }
+  add('生年化祿（'+C.sihua[0].star+'）',C.sihua[0].pal); add('祿存',ZW.findStar(C,'祿存')); add('天魁（陽貴人）',ZW.findStar(C,'天魁')); add('天鉞（陰貴人）',ZW.findStar(C,'天鉞'));
+  add('流年化祿（'+F.yHua[0].star+'，'+F.year+'）',F.yHua[0].pal);
+  b.push({type:'table',head:['吉星','所在宮位','地支','方位'],rows:rows});
+  b.push(P('化祿與祿存所在方位為求財、辦事的吉方；天魁、天鉞所在方位為貴人方，求職、拜訪、談合作可優先考慮。'));
+  b.push(N(L.branchDirNote));
+  b.push(H('生肖守護佛'));
+  var g=L.zodiacGuard.map[R.zodiac];
+  b.push(P('生肖屬'+R.zodiac+'，民間通行的守護佛為'+(g||'—')+'。'));
+  b.push(N(L.zodiacGuard.note));
+  b.push(N(L.method));
+  return sec('lucky','幸運密碼',b);
+}
+// ---------- 凶星化解 ----------
+var KEYPAL=['命宮','財帛','官祿','遷移','夫妻','疾厄','福德'];
+function wq(key,text){ var w=Q().wenda[key]; if(w&&w.lines.some(function(l){return l.indexOf(text)>=0;})) return quote(text,w.source); return N('「'+text+'」（來源待核）'); }
+function huaAt(p){ var r=[]; [[C.sihua,'生年'],[F.dHua,'大限'],[F.yHua,'流年']].forEach(function(a){ a[0].forEach(function(x){ if(x.pal===p&&x.hua!=='忌') r.push(a[1]+'化'+x.hua); }); }); return r; }
+function helpersFor(p){ var M=D.remedy.helpers.list, o=ZW.rel(C,p,6), r=[];
+  [p,o].forEach(function(q,i){ q.all.forEach(function(s){ if(M.indexOf(s.name)>=0) r.push((i?'對宮':'同宮')+s.name); }); q.adj.forEach(function(s){ if(M.indexOf(s.name)>=0) r.push((i?'對宮':'同宮')+s.name); });
+    C.sihua.forEach(function(x){ if(x.pal===q&&x.hua!=='忌') r.push((i?'對宮':'同宮')+'化'+x.hua); }); });
+  return r; }
+function timing(p){ var r=p.decadal.range, t=[F.dMing===p?'目前大限（'+r.join('–')+' 歲）命宮正在此宮':r[0]>=85?'大限命宮要到 '+r[0]+' 歲以後才行經此宮':r.join('–')+' 歲大限命宮行經此宮'];
+  if(F.yMing===p) t.push(F.year+' 年流年命宮正在此宮'); else if(ZW.sanfang(C,F.yMing).indexOf(p)>=0) t.push(F.year+' 年此宮在流年命宮的三方四正');
+  return t.join('；')+'，這些時段尤宜留意。'; }
+function secRemedy(){
+  var RM=D.remedy, b=[P('煞星與化忌所落之宮，是命中較易有波折之處。以下依《紫微斗數全書》對各星的論述，配合同宮、對宮的吉星吉化（制化），整理每顆凶星的化解方向。標示「重點宮位」者為命、財、官、遷、夫妻、疾厄、福德或身宮。')];
+  var yangN=null;
+  ['擎羊','陀羅','火星','鈴星','地空','地劫'].forEach(function(n){ var p=ZW.findStar(C,n); if(!p) return; var cfg=RM.stars[n], s=p.minor.filter(function(x){return x.name===n;})[0]||{};
+    var key=KEYPAL.indexOf(p.name)>=0||p.isBodyPalace;
+    b.push(H(n+(s.brightness?'（'+s.brightness+'）':'')+'在'+palName(p)+'（'+p.br+'）'+(key?'・重點宮位':'')));
+    var on=p.names.concat(ZW.rel(C,p,6).names), good=['廟','旺'].indexOf(s.brightness)>=0;
+    var ql=n==='擎羊'?[good?cfg.quotes[0]:'居卯酉作禍興殃，刑剋極甚。'].concat(hasAny(on,['火星','地空','地劫'])?[cfg.quotes[1]]:[])
+      :n==='陀羅'?[good?cfg.quotes[0]:'若陷地加殺刑剋招凶'].concat(p.name==='疾厄'?[cfg.quotes[1]]:[])
+      :n==='火星'?(p.names.indexOf('貪狼')>=0?[cfg.quotes[0]]:hasAny(p.names,['擎羊','陀羅'])?[cfg.quotes[1]]:['性氣亦沉毒，剛強出眾人'])
+      :cfg.quotes;
+    ql.forEach(function(t){ b.push(wq(cfg.wenda,t)); });
+    if(n==='火星'&&p.names.indexOf('貪狼')>=0) b.push(P('火星與貪狼同宮，為通行所稱「火貪格」，古書以為旺地反主發達，此星凶性大減。'));
+    if(n==='鈴星'&&p.names.indexOf('貪狼')>=0) b.push(P('鈴星與貪狼同宮，為通行所稱「鈴貪格」，此星凶性轉為爆發力。'));
+    if((n==='擎羊'||n==='陀羅')&&['廟','旺'].indexOf(s.brightness)>=0) b.push(P(n+'入廟旺，剛強之氣可轉為魄力與執行力，凶性較輕。'));
+    var hp=helpersFor(p).concat(huaAt(p).map(function(h){return '同宮'+h;}));
+    b.push(P(hp.length?'制化：'+hp.join('、')+'，'+n+'之凶較能受制。':'制化：同宮與對宮未見吉星吉化制衡，'+n+'的影響較直接。'));
+    b.push(P('化解建議（本站整理）：'+cfg.advice+'落在'+palName(p)+'：'+RM.palaceTip[p.name]));
+    b.push(P('應期：'+timing(p)));
+    if(n==='擎羊') yangN=p;
+  });
+  // 化忌：生年、大限、流年
+  b.push(H('化忌的化解'));
+  b.push(wq(RM.stars['化忌'].wenda,RM.stars['化忌'].quotes[0]));
+  [['生年',C.sihua[3]],['大限',F.dHua[3]],['流年（'+F.year+'）',F.yHua[3]]].forEach(function(a){ var x=a[1], p=x.pal; if(!p) return;
+    var hp=helpersFor(p);
+    b.push(P('◆ '+a[0]+x.star+'化忌在'+palName(p)+'（'+p.br+'）'+(KEYPAL.indexOf(p.name)>=0?'，屬重點宮位':'')+'：'+D.sihua.into[p.name]['忌']+(hp.length?hp.join('、')+'可稍作緩衝。':'')+RM.palaceTip[p.name])); });
+  if(F.yHua[3].pal&&(F.yHua[3].pal===C.sihua[3].pal||F.yHua[3].pal===F.dHua[3].pal)) b.push(P('流年化忌與'+(F.yHua[3].pal===C.sihua[3].pal?'生年':'大限')+'化忌同落'+palName(F.yHua[3].pal)+'，為忌星重疊，今年此宮之事最需放寬心、留餘地。'));
+  b.push(wq(RM.stars['化忌'].wenda,RM.stars['化忌'].quotes[1]));
+  b.push(P('化解建議（本站整理）：'+RM.stars['化忌'].advice));
+  // 流年羊陀
+  b.push(H(F.year+' 年流年羊陀'));
+  var fy=function(nm){ for(var i=0;i<12;i++) if((F.yStars[i]||[]).some(function(s){return s.name===nm;})) return C.pal[i]; return null; };
+  var ly=fy('流羊'), lt=fy('流陀'), ty=ZW.findStar(C,'陀羅');
+  b.push(P('今年流羊在'+(ly?palName(ly)+'（'+ly.br+'）':'—')+'、流陀在'+(lt?palName(lt)+'（'+lt.br+'）':'—')+'。'));
+  if((ly&&(ly===yangN||ly===ty))||(lt&&(lt===yangN||lt===ty))){
+    var j=Q().juan3['論羊陀迭並']; b.push(P('流年羊陀與本命羊陀同宮，近於古書所說的「羊陀迭並」，今年宜格外穩健：')); if(j) b.push(quote(j.lines[0],j.source)); }
+  else b.push(P('流年羊陀未與本命羊陀重疊。流羊、流陀所在宮位之事，今年宜多一分耐心。'));
+  b.push(H('制化通則'));
+  b.push(wq(RM.helpers.quote.wenda,RM.helpers.quote.text));
+  b.push(P(RM.helpers.note));
+  b.push(N(RM.noFolk));
+  b.push(N(RM.source));
+  return sec('remedy','凶星化解',b);
+}
+// ---------- 附錄 ----------
 function secAppendix(){
   var T=D.sihua.tables[C.S.table||'default'];
   var b=[H('排盤設定'),{type:'list',items:['四化表：'+T.name+'。'+T.note,'子時：'+(C.S.zi==='current'?'晚子時（23:00–24:00）仍算當日，0:00 才換日':'23:00 即換日，晚子時算翌日'),
@@ -244,11 +394,11 @@ function build(chart,flowData,data){
   var R=C.raw;
   var book={title:'紫微斗數命書'+(C.S.name?'：'+C.S.name:''), subtitle:R.solarDate+' '+R.time+'　'+C.S.gender,
     meta:[['姓名',C.S.name||'—'],['性別',C.S.gender],['西曆',R.solarDate+' '+R.time+'（'+R.timeRange+'）'],['農曆',R.lunarDate],['四柱',R.chineseDate],['五行局',R.fiveElementsClass],
-      ['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br+'（'+C.body.name+'）':'')],['命主／身主',R.soul+'／'+R.body],['流年',F.year+' '+F.gz+'（虛歲 '+F.nominalAge+'）']],
+      ['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br+'（'+C.body.name+'）':'')],['命主／身主',R.soul+'／'+R.body],['流年',F.year+' '+F.gz+'（虛歲 '+F.nominalAge+'）']].concat(F.day?[['流日',F.day.date+' '+F.day.gz+'（農曆'+F.day.lunar+'）']]:[]),
     sections:[]};
-  [secChart,secMingFu,secPalaces,secPatterns,secSihua,secDecadal,secYearly,secMonthly,secTopics,secAppendix].forEach(function(fn){
+  [secChart,secMingFu,secPalaces,secPatterns,secSihua,secDecadal,secYearly,secMonthly,secDaily,secTopics,secLucky,secRemedy,secAppendix].forEach(function(fn){
     try{ book.sections.push(fn()); }catch(e){ book.sections.push(sec('err','（此節產生失敗）',[N(String(e&&e.message||e))])); if(window.console) console.error(e); } });
-  book.sections.forEach(function(s,i){ s.heading=['一','二','三','四','五','六','七','八','九','十','十一'][i]+'、'+s.heading; });
+  book.sections.forEach(function(s,i){ s.heading=['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五'][i]+'、'+s.heading; });
   book.sources=used.slice(); book.generated=new Date().toLocaleString('zh-TW'); book.chartRef=C; book.flowRef=F;
   return book;
 }

@@ -13,8 +13,8 @@ function detail(C,F,p){
   o+='<div>神煞：長生 '+e(p.changsheng12)+'・博士 '+e(p.boshi12)+'・將前 '+e(p.jiangqian12)+'・歲前 '+e(p.suiqian12)+'</div>';
   o+='<div>小限：'+p.ages.slice(0,8).join('、')+' 歲</div>';
   o+='<div>宮干四化：'+p.fly.map(function(f){return e(f.star)+'化'+f.hua+(f.to?'→'+e(f.to.name)+(f.self?'（自化）':''):'');}).join('；')+'</div>';
-  if(F){ var tags=[]; ['dMap','yMap','aMap'].forEach(function(k,ki){ for(var n in F[k]) if(F[k][n]===p) tags.push(['大限','流年','小限'][ki]+n); });
-    var fs=(F.dStars[p.idx]||[]).concat(F.yStars[p.idx]||[]).map(function(s){return s.name;});
+  if(F){ var tags=[]; ['dMap','yMap','aMap','tMap'].forEach(function(k,ki){ for(var n in (F[k]||{})) if(F[k][n]===p) tags.push(['大限','流年','小限','流日'][ki]+n); });
+    var fs=(F.dStars[p.idx]||[]).concat(F.yStars[p.idx]||[]).concat(F.tStars&&F.tStars[p.idx]||[]).map(function(s){return s.name;});
     o+='<div>運限：'+e(tags.join('、'))+(fs.length?'；運星：'+e(fs.join('、')):'')+'</div>'; }
   return o;
 }
@@ -27,7 +27,7 @@ function render(C,F,el){
     p.major.forEach(function(s){ h+='<span class="st mj"><b>'+e(s.name)+'</b><em>'+e(s.brightness||'')+'</em>'+hb(C,s.name)+selfMark(p,s.name)+'</span>'; });
     p.minor.forEach(function(s){ var bad=ZW.UNLUCKY.indexOf(s.name)>=0; h+='<span class="st mn'+(bad?' bad':'')+'"><b>'+e(s.name)+'</b><em>'+e(s.brightness||'')+'</em>'+hb(C,s.name)+selfMark(p,s.name)+'</span>'; });
     h+='</div><div class="adj">'+p.adj.map(function(s){return e(s.name);}).join(' ')+'</div>';
-    if(F){ var tags=[]; ['dMap','yMap','aMap'].forEach(function(k,ki){ for(var n in F[k]) if(F[k][n]===p) tags.push(['大','年','小'][ki]+(n==='命宮'?'命':n.slice(0,1))); });
+    if(F){ var tags=[]; ['dMap','yMap','aMap','tMap'].forEach(function(k,ki){ for(var n in (F[k]||{})) if(F[k][n]===p) tags.push(['大','年','小','日'][ki]+(n==='命宮'?'命':n.slice(0,1))); });
       var fs=[]; (F.dStars[p.idx]||[]).concat(F.yStars[p.idx]||[]).forEach(function(s){ fs.push(s.name); });
       h+='<div class="flow">'+tags.map(function(t){return '<span class="tg'+(/命$/.test(t)?' tm':'')+'">'+e(t)+'</span>';}).join('')+(fs.length?'<span class="fs">'+e(fs.join(' '))+'</span>':'')+'</div>'; }
     h+='<div class="foot"><span class="gods">'+e(p.changsheng12)+' '+e(p.boshi12)+'<br>'+e(p.jiangqian12)+' '+e(p.suiqian12)+'</span>';
@@ -45,7 +45,7 @@ function render(C,F,el){
   h+='<div>命宮 '+e(C.ming.stem+C.ming.br)+'　身宮 '+e(C.body?C.body.br+'（'+C.body.name+'）':'')+'</div>';
   h+='<div>命主 '+e(R.soul)+'　身主 '+e(R.body)+'</div>';
   h+='<div>生年四化（'+e(C.yearStem)+'）：'+C.sihua.map(function(x){return e(x.star)+'化'+x.hua;}).join('　')+'</div>';
-  if(F) h+='<div class="cf">'+F.year+' 流年 '+e(F.gz)+'（虛歲 '+F.nominalAge+'）<br>大限 '+F.dRange.join('–')+' '+e(F.decadal.heavenlyStem+F.decadal.earthlyBranch)+'：'+F.dHua.map(function(x){return e(x.star)+x.hua;}).join(' ')+'<br>流年四化：'+F.yHua.map(function(x){return e(x.star)+x.hua;}).join(' ')+'</div>';
+  if(F) h+='<div class="cf">'+F.year+' 流年 '+e(F.gz)+'（虛歲 '+F.nominalAge+'）<br>大限 '+F.dRange.join('–')+' '+e(F.decadal.heavenlyStem+F.decadal.earthlyBranch)+'：'+F.dHua.map(function(x){return e(x.star)+x.hua;}).join(' ')+'<br>流年四化：'+F.yHua.map(function(x){return e(x.star)+x.hua;}).join(' ')+(F.day?'<br>流日 '+e(F.day.date.slice(5).replace('-','/'))+' '+e(F.day.gz)+'：'+F.day.hua.map(function(x){return e(x.star)+x.hua;}).join(' '):'')+'</div>';
   h+='<div class="lg"><i class="h h祿">祿</i><i class="h h權">權</i><i class="h h科">科</i><i class="h h忌">忌</i> 生年四化　<i class="sh">↻</i> 自化　點宮位看三方四正與完整星曜</div>';
   h+='</div></div>';
   el.innerHTML=h;

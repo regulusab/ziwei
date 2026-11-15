@@ -73,6 +73,7 @@ footer{text-align:center;color:var(--mut);font-size:.85em;padding:20px}
 </div><p class="sub" id="tableNote"></p></details>
 <div class="form" style="margin-top:10px">
 <label>流年（西元）<input type="number" id="fyear" min="1900" max="2120" style="width:6em"></label>
+<label>流日（西曆）<input type="date" id="fday" min="1900-01-31" max="2100-12-31"></label>
 <button class="btn" id="go">排盤並產生命書</button></div>
 <div id="msg"></div>
 </section>
@@ -87,7 +88,7 @@ footer{text-align:center;color:var(--mut);font-size:.85em;padding:20px}
 <section class="card" id="bookCard"><div id="book"></div></section>
 </div>
 </main>
-<footer>排盤核心：<a href="https://github.com/SylarLong/iztro">iztro</a>（MIT）；古籍引文：維基文庫《紫微斗數全書》。命理內容僅供參考。</footer>
+<footer>排盤核心：<a href="https://github.com/SylarLong/iztro">iztro</a>（MIT）；古籍引文：維基文庫《紫微斗數全書》《禮記・月令》《淮南子・天文訓》《尚書・洪範》。命理內容僅供參考。</footer>
 <script src="vendor/iztro.min.js"></script>
 <script src="js/engine.js"></script><script src="js/chart.js"></script><script src="js/book.js"></script><script src="js/render.js"></script><script src="js/export.js"></script><script src="js/cases.js"></script><script src="js/app.js"></script>
 </body></html>

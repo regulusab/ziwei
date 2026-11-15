@@ -9,20 +9,25 @@ function fillTables(){ var T=DATA.sihua.tables; $('table').innerHTML=Object.keys
 function lunarDays(){ var s='<option value="">日</option>'; for(var d=1;d<=30;d++) s+='<option value="'+d+'">'+['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'][d-1]+'</option>'; $('lday').innerHTML=s;
   var m=''; for(var i=1;i<=12;i++) m+='<option value="'+i+'">'+'正二三四五六七八九十冬臘'[i-1]+'月</option>'; $('lmon').innerHTML=m; }
 function settings(){
-  var cal=$('cal').value, S={cal:cal, tidx:$('tidx').value, gender:$('gender').value, zi:$('zi').value, table:$('table').value, yearDivide:$('ydiv').value, flowYear:$('fyear').value, name:$('name').value.trim()};
+  var cal=$('cal').value, S={cal:cal, tidx:$('tidx').value, gender:$('gender').value, zi:$('zi').value, table:$('table').value, yearDivide:$('ydiv').value, flowYear:$('fyear').value, flowDay:$('fday').value, name:$('name').value.trim()};
   if(cal==='solar') S.date=$('sdate').value; else { S.date=$('lyear').value+'-'+$('lmon').value+'-'+$('lday').value; S.leap=$('lleap').checked?1:0; }
   return S; }
 function apply(S){
   $('cal').value=S.cal||'solar'; calSwitch();
   if(S.cal==='lunar'){ var p=String(S.date).split('-'); $('lyear').value=p[0]; $('lmon').value=+p[1]; $('lday').value=+p[2]; $('lleap').checked=!!+S.leap; } else $('sdate').value=S.date;
-  ['tidx','gender','zi','table'].forEach(function(k){ if(S[k]!=null) $(k).value=S[k]; }); if(S.yearDivide) $('ydiv').value=S.yearDivide; if(S.flowYear) $('fyear').value=S.flowYear; $('name').value=S.name||'';
+  ['tidx','gender','zi','table'].forEach(function(k){ if(S[k]!=null) $(k).value=S[k]; }); if(S.yearDivide) $('ydiv').value=S.yearDivide; if(S.flowYear) $('fyear').value=S.flowYear; $('fday').value=S.flowDay||defDay($('fyear').value); $('name').value=S.name||'';
   run(); }
+function pad(n){ return (n<10?'0':'')+n; }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+// 流日預設：流年即今年則取今天，否則取該年同月同日
+function defDay(Y){ var t=today(); Y=+Y||+t.slice(0,4); if(+t.slice(0,4)===Y) return t; return ZW.addDays(Y+'-'+t.slice(5,7)+'-01',+t.slice(8)-1); }
 function calSwitch(){ var l=$('cal').value==='lunar'; $('solarBox').style.display=l?'none':''; $('lunarBox').style.display=l?'':'none'; }
 function run(){
   var S=settings();
   if(!S.date||/-$|--/.test(S.date)) return msg('請輸入完整的出生日期');
   try{
-    var C=ZW.compute(S), Y=+S.flowYear||new Date().getFullYear(), F=C.flow(Y);
+    if(!S.flowDay){ S.flowDay=defDay(S.flowYear); $('fday').value=S.flowDay; }
+    var C=ZW.compute(S), Y=+S.flowYear||new Date().getFullYear(), F=C.flow(Y,S.flowDay);
     ZWChart.render(C,F,$('chart'));
     var book=ZWBook.build(C,F,DATA); LAST=book;
     ZWRender.render(book,$('book'));
@@ -39,10 +44,12 @@ function share(){ var url=ZWCases.toURL(settings());
     if(navigator.share) return navigator.share({title:LAST.title,url:url}).catch(function(){});
     return (navigator.clipboard?navigator.clipboard.writeText(url):Promise.resolve()).then(function(){ msg('此瀏覽器不支援分享，已複製連結'); }); }); }
 function init(){
-  var files=['quanshu','stars','palaces','sihua','patterns'];
+  var files=['quanshu','stars','palaces','sihua','patterns','lucky','remedy'];
   Promise.all(files.map(function(f){ return fetch('data/'+f+'.json').then(function(r){ if(!r.ok) throw new Error(f); return r.json(); }); })).then(function(arr){
     files.forEach(function(f,i){ DATA[f]=arr[i]; }); window.ZWData=DATA;
-    fillTimes(); fillTables(); lunarDays(); $('fyear').value=new Date().getFullYear();
+    fillTimes(); fillTables(); lunarDays(); $('fyear').value=new Date().getFullYear(); $('fday').value=today();
+    $('fyear').onchange=function(){ var v=$('fday').value; if(!v||v.slice(0,4)!==String(this.value)) $('fday').value=defDay(this.value); };
+    $('fday').onchange=function(){ if(LAST) run(); };
     $('cal').onchange=calSwitch; $('go').onclick=run;
     $('stime').onchange=function(){ if(this.value) $('tidx').value=ZW.timeToIndex(this.value); };
     act($('dlDocx'),function(){ return ZWExport.exportBook(LAST,'docx'); });
