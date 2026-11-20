@@ -13,12 +13,81 @@ var BASE={甲:['廉貞','破軍','武曲','太陽'],乙:['天機','天梁','紫�
 function timeToIndex(hhmm){ var p=String(hhmm||'').split(':'), h=+p[0]; if(isNaN(h)) return 0; if(h===23) return 12; if(h===0) return 0; return Math.floor((h+1)/2); }
 function table(id){ var T=(window.ZWData&&ZWData.sihua.tables[id])||{mutagens:{}}; var t={}; ST.forEach(function(s){ t[s]=(T.mutagens[s]||BASE[s]).slice(); }); return t; }
 
+/* ---------- 出生地農曆與四柱（依老師 2026-11-19 裁定；演算法與「生命之眼」紫微相同：heluo-ziwei/src/local_lunar.mjs） ----------
+   依出生地的地方平時排盤（出生日期時間照輸入使用，不另換算）；紫微斗數 23:00 換日；
+   農曆以出生地經度的地方平時合朔定初一（月序、閏月依中國農曆）；東經 70° 以西日柱干支進一位（日期不動），時干依新日干五鼠遁。 */
+var DAY=864e5;
+var TIME_BASIS='依出生地的地方平時排盤（出生日期時間照輸入使用，不另換算）；八字與河洛理數 0:00 換日，紫微斗數 23:00 換日；東經 70° 以西日柱干支進一位（日期不動）；紫微與河洛的農曆以出生地經度的地方平時合朔定初一。';
+var DEF_LON=121.57; // 臺北
+function LL(){ return window.HeluoLocalLunar; }
+function dayNum(s){ return Math.floor(Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))/DAY); }
+function ymdOf(n){ return new Date(n*DAY).toISOString().slice(0,10); }
+function gzDay(n){ var i=(((n+7397)%60)+60)%60; return ST[i%10]+BR[i%12]; }   // 1949-10-01（日序 -7397）甲子
+function hourGz(dayStem,bi){ return ST[((ST.indexOf(dayStem)%5)*2+bi)%10]+BR[bi]; } // 五鼠遁
+function pad2(n){ return (n<10?'0':'')+n; }
+function parseLon(v){ if(v==null||v==='') return DEF_LON; var n=parseFloat(v); return isNaN(n)?DEF_LON:Math.max(-180,Math.min(180,n)); }
+function lonText(lon){ return (lon<0?'西經 ':'東經 ')+Math.abs(lon)+'°'; }
+function sameLunar(a,b){ return a.year===b.year&&a.month===b.month&&!!a.leap===!!b.leap&&a.day===b.day; }
+function chinaLunar(ymd){ var p=ymd.split('-').map(Number), L=Solar.fromYmd(p[0],p[1],p[2]).getLunar(); return {year:L.getYear(),month:Math.abs(L.getMonth()),leap:L.getMonth()<0,day:L.getDay()}; }
+function localLunarOf(lon,dn){ var L=LL().localLunar({lon:lon},dn); L.text=LL().lunarText(L); return L; }
+// 時辰序（0 早子…12 晚子）→ 出生時刻：有輸入時間且落在該時辰就用，否則取時辰中點（只用於比對交節氣）
+function clockOf(tidx,t){
+  if(t&&/^\d{1,2}:\d{2}/.test(t)&&timeToIndex(t)===tidx) return pad2(+t.split(':')[0])+':'+t.split(':')[1].slice(0,2);
+  return tidx===0?'00:30':tidx===12?'23:30':pad2(tidx*2)+':00'; }
+// 農曆輸入（出生地農曆）→ 出生日期（西曆）：在中國曆換算結果 ±3 日內找出生地農曆相同的那一天
+function solarFromLocalLunar(lon,y,m,d,leap){
+  var p, base;
+  try{ base=dayNum(Lunar.fromYmd(y,leap?-m:m,Math.min(d,29)).getSolar().toYmd()); }catch(e){ throw new Error('農曆日期不存在'); }
+  for(var k=-3;k<=4;k++){ var L=localLunarOf(lon,base+k); if(L.year===y&&L.month===m&&!!L.leap===!!leap&&L.day===d) return ymdOf(base+k); }
+  throw new Error('出生地農曆沒有這一天（'+y+'年'+(leap?'閏':'')+m+'月'+d+'日）');
+}
+function makeAstro(date,tidx,S,cfg){ return iztro.astro.withOptions({type:'solar',dateStr:date,timeIndex:tidx,gender:S.gender,isLeapMonth:false,fixLeap:true,language:'zh-TW',config:cfg}); }
+
 function compute(S){
-  // S: {cal:'solar'|'lunar', date:'YYYY-MM-DD', leap:bool, tidx:0..12, gender:'男'|'女', zi:'forward'|'current', table:'default'|..., yearDivide:'normal'|'exact', flowYear:Number}
-  var T=table(S.table||'default');
-  var cfg={mutagens:T, dayDivide:S.zi||'forward', yearDivide:S.yearDivide||'normal', horoscopeDivide:S.yearDivide||'normal'};
-  var a=iztro.astro.withOptions({type:S.cal||'solar',dateStr:S.date,timeIndex:+S.tidx,gender:S.gender,isLeapMonth:!!S.leap,fixLeap:true,language:'zh-TW',config:cfg});
-  var C={S:S, T:T, a:a, raw:JSON.parse(JSON.stringify(a))};
+  // S: {cal:'solar'|'lunar', date, leap, tidx:0..12, time:'HH:MM'(可省), lon:經度（東正西負）, gender, table, yearDivide:'normal'|'exact', flowYear}
+  var T=table(S.table||'default'), tidx=+S.tidx||0, lon=parseLon(S.lon), late=tidx===12;
+  var cfg={mutagens:T, dayDivide:'forward', yearDivide:S.yearDivide||'normal', horoscopeDivide:S.yearDivide||'normal'};
+  var cal={lon:lon, lonText:lonText(lon), basis:TIME_BASIS, late:late, shift:lon<70?1:0};
+  // 1. 出生日期（地方平時，照輸入）
+  if(S.cal==='lunar'){ var q=String(S.date).split('-').map(Number); cal.civilDate=solarFromLocalLunar(lon,q[0],q[1],q[2],!!+S.leap); }
+  else cal.civilDate=S.date;
+  cal.clock=clockOf(tidx,S.time);
+  // 2. 紫微 23:00 換日：晚子時屬翌日
+  var dn=dayNum(cal.civilDate)+(late?1:0); cal.ziweiDate=ymdOf(dn);
+  // 3. 出生地農曆
+  var L=null; try{ L=localLunarOf(lon,dn); }catch(e){ cal.error=String(e&&e.message||e); }
+  var china=chinaLunar(cal.ziweiDate); cal.china=china;
+  var a, used={date:cal.civilDate,tidx:tidx};
+  if(!L||sameLunar(L,china)){ a=makeAstro(cal.civilDate,tidx,S,cfg); }
+  else {
+    // iztro 只認中國曆：改用「農曆年干支、月、閏、日都相同」的中國曆日期排盤（與生命之眼紫微相同）
+    var t0=late?0:tidx, yd=S.yearDivide||'normal';
+    var target=yd==='normal'?L.yearGanZhi:(function(){ var r=makeAstro(cal.ziweiDate,t0,S,cfg).rawDates.chineseDate.yearly; return r[0]+r[1]; })();
+    var ks=[0]; for(var k=1;k<=15;k++) ks.push(-k,k);
+    var forms=L.leap?[[L.month,true],[L.day>15?L.month%12+1:L.month,false]]:[[L.month,false]];
+    outer: for(var fi=0;fi<forms.length;fi++){ var mm=forms[fi][0], lp=forms[fi][1], dys=yd==='normal'?[0]:[0,-1,1];
+      for(var di=0;di<dys.length;di++) for(var ki=0;ki<ks.length;ki++){
+        var yy=L.year+dys[di]+60*ks[ki], s, back; if(yy<1000||yy>3000) continue;
+        try{ s=Lunar.fromYmd(yy,lp?-mm:mm,L.day).getSolar().toYmd(); back=Solar.fromYmd.apply(null,s.split('-').map(Number)).getLunar();
+          if(back.getDay()!==L.day||Math.abs(back.getMonth())!==mm||(back.getMonth()<0)!==lp) continue; }catch(e){ continue; }
+        var c=makeAstro(s,t0,S,cfg), r=c.rawDates.chineseDate.yearly;
+        if(r[0]+r[1]===target){ a=c; used={date:s,tidx:t0}; cal.substitute=s; break outer; } } }
+    if(!a){ a=makeAstro(cal.civilDate,tidx,S,cfg); cal.fallback='找不到同干支年、月、日的中國曆日期，暫依中國曆'; }
+    // 替代日期與實際出生不同年（相差 60 年倍數）時，運限虛歲改以實際農曆年計
+    if(cal.substitute&&a.rawDates.lunarDate.lunarYear!==L.year) a.rawDates.lunarDate.lunarYear=L.year;
+  }
+  cal.lunar=L; cal.used=used;
+  // 4. 四柱：年月柱以輸入時刻比對出生地地方平時的節氣；日柱依紫微日（23:00 換日），東經 70° 以西干支進一位；時干五鼠遁
+  var hh=+cal.clock.slice(0,2), mi=+cal.clock.slice(3,5), cd=cal.civilDate.split('-').map(Number);
+  var ym=LL().yearMonth({Solar:Solar,Lunar:Lunar},Solar.fromYmdHms(cd[0],cd[1],cd[2],hh,mi,0),lon);
+  var dgz=gzDay(dn+cal.shift), bi=late?0:(tidx===0?0:tidx);
+  cal.pillars={year:ym&&!ym.error?ym.year:null, month:ym&&!ym.error?ym.month:null, day:dgz, hour:hourGz(dgz.charAt(0),bi)};
+  if(!cal.pillars.year){ var rc=a.rawDates.chineseDate; cal.pillars.year=rc.yearly.join(''); cal.pillars.month=rc.monthly.join(''); }
+  var C={S:S, T:T, a:a, raw:JSON.parse(JSON.stringify(a)), cal:cal};
+  // 顯示用：出生日期、農曆、四柱改為出生地版本
+  C.raw.solarDate=cal.civilDate;
+  if(L) C.raw.lunarDate=L.text+(late?'（晚子時，23:00 換日）':'');
+  C.raw.chineseDate=[cal.pillars.year,cal.pillars.month,cal.pillars.day,cal.pillars.hour].join(' ');
   C.pal=C.raw.palaces.map(function(p,i){
     p.idx=i; p.br=p.earthlyBranch; p.stem=p.heavenlyStem; p.bi=BR.indexOf(p.br);
     p.major=p.majorStars; p.minor=p.minorStars; p.adj=p.adjectiveStars;
@@ -29,7 +98,7 @@ function compute(S){
   C.byBr={}; C.pal.forEach(function(p){ C.byBr[p.br]=p; });
   C.ming=C.byName['命宮']; C.body=C.pal.filter(function(p){return p.isBodyPalace;})[0];
   C.yearStem=C.raw.rawDates.chineseDate.yearly[0]; C.yearBr=C.raw.rawDates.chineseDate.yearly[1];
-  C.birthYear=+C.raw.solarDate.slice(0,4); C.lunarYear=C.raw.rawDates.lunarDate.lunarYear;
+  C.birthYear=+cal.civilDate.slice(0,4); C.lunarYear=L?L.year:C.raw.rawDates.lunarDate.lunarYear;
   // 生年四化
   C.sihua=HUA.map(function(h,i){ var star=T[C.yearStem][i]; return {hua:h,star:star,pal:findStar(C,star)}; });
   // 宮干飛化（含自化）
@@ -78,5 +147,5 @@ function addDays(ds,n){ var p=ds.split('-'), t=new Date(Date.UTC(+p[0],+p[1]-1,+
 function decades(C){ return C.pal.slice().sort(function(x,y){return x.decadal.range[0]-y.decadal.range[0];}); }
 window.ZW={BR:BR,ST:ST,SHICHEN:SHICHEN,SHI_RANGE:SHI_RANGE,MAJOR:MAJOR,LUCKY:LUCKY,UNLUCKY:UNLUCKY,HUA:HUA,BASE:BASE,
   compute:function(S){ var C=compute(S); C.lunarYearOf=function(Y){return Y;}; C.flow=function(Y,ds,hi){ var F=flow(C,Y); if(ds&&/^\d{4}-\d{2}-\d{2}$/.test(ds)){ try{ F.day=day(C,ds,hi); F.tMap=F.day.map; F.tStars=F.day.stars; F.hour=F.day.hour; F.hMap=F.hour.map; F.hStars=F.hour.stars; F.week=[0,1,2,3,4,5,6].map(function(n){ return n?day(C,addDays(ds,n),0):F.day; }); }catch(e){ F.day=null; F.hour=null; } } return F; }; C.day=function(ds,hi){return day(C,ds,hi);}; return C; },
-  timeToIndex:timeToIndex, findStar:findStar, rel:rel, sanfang:sanfang, names:names, decades:decades, table:table, addDays:addDays};
+  timeToIndex:timeToIndex, TIME_BASIS:TIME_BASIS, DEF_LON:DEF_LON, parseLon:parseLon, lonText:lonText, findStar:findStar, rel:rel, sanfang:sanfang, names:names, decades:decades, table:table, addDays:addDays};
 })();

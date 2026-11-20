@@ -44,7 +44,7 @@ function render(C,F,el){
   h+='<div class="center" style="grid-row:2/4;grid-column:2/4">';
   h+='<div class="ct">'+e(C.S.name||'紫微斗數命盤')+'</div>';
   h+='<div>'+e(C.S.gender==='男'?((ZW.ST.indexOf(C.yearStem)%2?'陰':'陽')+'男'):((ZW.ST.indexOf(C.yearStem)%2?'陰':'陽')+'女'))+'　'+e(R.zodiac)+'年　'+e(R.fiveElementsClass)+'</div>';
-  h+='<div>西曆 '+e(R.solarDate)+' '+e(R.time)+'（'+e(R.timeRange)+'）</div>';
+  h+='<div>西曆 '+e(R.solarDate)+' '+e(R.time)+'（'+e(R.timeRange)+'）</div><div>出生地 '+e(C.cal.lonText)+'</div>';
   h+='<div>農曆 '+e(R.lunarDate)+'</div>';
   h+='<div class="bz">'+cd.map(function(x,i){return '<span><small>'+['年','月','日','時'][i]+'</small>'+e(x)+'</span>';}).join('')+'</div>';
   h+='<div>命宮 '+e(C.ming.stem+C.ming.br)+'　身宮 '+e(C.body?C.body.br+'（'+C.body.name+'）':'')+'</div>';

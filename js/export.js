@@ -16,7 +16,7 @@ function chartGrid(C){
     var hua=function(n){ return C.sihua.filter(function(x){return x.star===n;}).map(function(x){return '化'+x.hua;}).join(''); };
     g[pos[0]][pos[1]]=[p.major.map(function(s){return s.name+(s.brightness||'')+hua(s.name);}).join(' '), p.minor.map(function(s){return s.name+(s.brightness||'')+hua(s.name);}).join(' '),
       p.adj.map(function(s){return s.name;}).join(' '), p.changsheng12+' '+p.boshi12+' '+p.jiangqian12+' '+p.suiqian12, p.decadal.range.join('–')+'　'+p.stem+p.br+'　'+p.name+(p.isBodyPalace?'（身）':'')]; });
-  var R=C.raw; g[1][1]=[R.solarDate+' '+R.time, '農曆 '+R.lunarDate, R.chineseDate, R.fiveElementsClass+'　命主'+R.soul+'　身主'+R.body, '生年四化：'+C.sihua.map(function(x){return x.star+x.hua;}).join(' ')];
+  var R=C.raw; g[1][1]=[R.solarDate+' '+R.time+'（'+C.cal.lonText+'）', '農曆 '+R.lunarDate, R.chineseDate, R.fiveElementsClass+'　命主'+R.soul+'　身主'+R.body, '生年四化：'+C.sihua.map(function(x){return x.star+x.hua;}).join(' ')];
   return g;
 }
 function buildDocx(book){
@@ -72,7 +72,7 @@ function toMingshu(book){
     }); });
   return {schema:'mingshu/1',
     meta:{title:'紫微斗數命書',siteTitle:'紫微斗數論命',site:'ziwei',siteUrl:'https://regulusab.github.io/ziwei/',name:C.S.name||'',gender:C.S.gender,
-      birth:{solar:R.solarDate+' '+R.time+'（'+R.timeRange+'）',lunar:R.lunarDate+' '+R.time},generatedAt:new Date().toISOString()},
+      birth:{solar:R.solarDate+' '+R.time+'（'+R.timeRange+'）'+'　出生地 '+C.cal.lonText,lunar:R.lunarDate+' '+R.time},generatedAt:new Date().toISOString()},
     chart:{type:'ziwei',title:'紫微斗數命盤',subtitle:'本命盤',palaces:pal,
       center:{rows:[['四柱',R.chineseDate],['五行局',R.fiveElementsClass],['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br:'')],['命主／身主',R.soul+'／'+R.body],['生年四化',C.sihua.map(function(x){return x.star+x.hua;}).join(' ')]]}},
     sections:sec};

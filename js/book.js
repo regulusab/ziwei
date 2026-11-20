@@ -409,7 +409,7 @@ function secRemedy(){
 // ---------- 附錄 ----------
 function secAppendix(){
   var T=D.sihua.tables[C.S.table||'default'];
-  var b=[H('排盤設定'),{type:'list',items:['四化表：'+T.name+'。'+T.note,'子時：'+(C.S.zi==='current'?'晚子時（23:00–24:00）仍算當日，0:00 才換日':'23:00 即換日，晚子時算翌日'),
+  var b=[H('排盤設定'),{type:'list',items:['四化表：'+T.name+'。'+T.note,'時間口徑：'+ZW.TIME_BASIS,'出生地經度：'+C.cal.lonText+(C.cal.lunar?'；出生地農曆 '+C.cal.lunar.text+'（初一 '+C.cal.lunar.monthStart+'，合朔於出生地地方平時 '+C.cal.lunar.newMoonLocal+'）':'；出生地農曆無法計算，暫依中國農曆')+'。',
     '年界：'+(C.S.yearDivide==='exact'?'以立春分年':'以農曆正月初一分年'),'排盤核心：iztro '+(window.iztro&&iztro.version?'':'')+'2.6.5（MIT 授權，已置於本站，不連外部 CDN）','旬空、截空等雜曜位置各家安法略有差異，本站依 iztro 預設。']},
     H('引文出處'),{type:'list',items:used.slice()},
     N('古籍引文取自維基文庫《紫微斗數全書》錄文（公有領域），經程式轉為正體字，個別字形可能與刻本不同。標示【本站摘要】與表格中「本站整理」的文字為依通行說法改寫的白話摘要，不是古籍原文。命理內容僅供參考。')];
@@ -419,7 +419,7 @@ function build(chart,flowData,data){
   D=data; C=chart; F=flowData; used=[];
   var R=C.raw;
   var book={title:'紫微斗數命書'+(C.S.name?'：'+C.S.name:''), subtitle:R.solarDate+' '+R.time+'　'+C.S.gender,
-    meta:[['姓名',C.S.name||'—'],['性別',C.S.gender],['西曆',R.solarDate+' '+R.time+'（'+R.timeRange+'）'],['農曆',R.lunarDate],['四柱',R.chineseDate],['五行局',R.fiveElementsClass],
+    meta:[['姓名',C.S.name||'—'],['性別',C.S.gender],['西曆',R.solarDate+' '+R.time+'（'+R.timeRange+'）'],['出生地',C.cal.lonText],['農曆',R.lunarDate],['四柱',R.chineseDate],['五行局',R.fiveElementsClass],
       ['命宮／身宮',C.ming.stem+C.ming.br+'／'+(C.body?C.body.br+'（'+C.body.name+'）':'')],['命主／身主',R.soul+'／'+R.body],['流年',F.year+' '+F.gz+'（虛歲 '+F.nominalAge+'）']].concat(F.day?[['流日',F.day.date+' '+F.day.gz+'（農曆'+F.day.lunar+'）']]:[]).concat(F.hour?[['流時',F.hour.name+'（'+F.hour.range+'）'+F.hour.gz]]:[]),
     sections:[]};
   [secChart,secMingFu,secPalaces,secPatterns,secSihua,secDecadal,secYearly,secMonthly,secDaily,secTopics,secLucky,secRemedy,secAppendix].forEach(function(fn){

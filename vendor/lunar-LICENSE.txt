@@ -1,0 +1,4 @@
+lunar-javascript（https://github.com/6tail/lunar-javascript），MIT License，Copyright (c) 6tail。
+vendor/lunar.js、vendor/lunation.js、vendor/local_lunar.js 自河洛理數站（regulusab，commit 722b429）原樣複製：
+lunar.js 為 lunar-javascript；lunation.js 為 DE440s 合朔表（1899-10～2101-02）；local_lunar.js 為出生地農曆與出生地地方平時節氣換算。
+本站不修改這三個檔案。

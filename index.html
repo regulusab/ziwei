@@ -58,17 +58,19 @@ footer{text-align:center;color:var(--mut);font-size:.85em;padding:20px}
 <section class="card" id="inputCard"><h2>命造輸入</h2>
 <div class="form">
 <label>姓名／命例名<input id="name" placeholder="可留空" size="10"></label>
-<label>曆法<select id="cal"><option value="solar">西曆（國曆）</option><option value="lunar">農曆（手動輸入）</option></select></label>
+<label>曆法<select id="cal"><option value="solar">西曆（國曆）</option><option value="lunar">農曆（出生地農曆）</option></select></label>
 <span id="solarBox" class="form"><label>西曆出生日期<input type="date" id="sdate" min="1900-01-31" max="2100-12-31"></label>
 <label>出生時間（自動換算時辰）<input type="time" id="stime"></label></span>
 <span id="lunarBox" class="form" style="display:none"><label>農曆年（西元）<input type="number" id="lyear" min="1900" max="2100" value="1990" style="width:6em"></label>
 <label>月<select id="lmon"></select></label><label>日<select id="lday"></select></label><label>閏月<input type="checkbox" id="lleap"></label></span>
 <label>時辰<select id="tidx"></select></label>
 <label>性別<select id="gender"><option value="男">男（乾造）</option><option value="女">女（坤造）</option></select></label>
+<label>出生地<select id="place"></select></label>
+<label>經度（東經正、西經負）<input type="number" id="lon" step="0.01" min="-180" max="180" value="121.57" style="width:7em"></label>
 </div>
+<p class="sub" id="timeBasis">依出生地的地方平時排盤（出生日期時間照輸入使用，不另換算）；八字與河洛理數 0:00 換日，紫微斗數 23:00 換日；東經 70° 以西日柱干支進一位（日期不動）；紫微與河洛的農曆以出生地經度的地方平時合朔定初一。</p>
 <details style="margin-top:8px"><summary class="sub">派別與進階設定</summary>
 <div class="form" style="margin-top:8px">
-<label>子時換日<select id="zi"><option value="forward">23:00 即換日（晚子時算翌日）</option><option value="current">0:00 才換日（晚子時算當日）</option></select></label>
 <label>四化表<select id="table"></select></label>
 <label>年界<select id="ydiv"><option value="normal">農曆正月初一</option><option value="exact">立春</option></select></label>
 </div><p class="sub" id="tableNote"></p></details>
@@ -90,7 +92,8 @@ footer{text-align:center;color:var(--mut);font-size:.85em;padding:20px}
 <section class="card" id="bookCard"><div id="book"></div></section>
 </div>
 </main>
-<footer>排盤核心：<a href="https://github.com/SylarLong/iztro">iztro</a>（MIT）；古籍引文：維基文庫《紫微斗數全書》《禮記・月令》《淮南子・天文訓》《尚書・洪範》。命理內容僅供參考。</footer>
+<footer>排盤核心：<a href="https://github.com/SylarLong/iztro">iztro</a>（MIT）；曆法：<a href="https://github.com/6tail/lunar-javascript">lunar-javascript</a>（MIT）；古籍引文：維基文庫《紫微斗數全書》《禮記・月令》《淮南子・天文訓》《尚書・洪範》。命理內容僅供參考。</footer>
 <script src="vendor/iztro.min.js"></script>
+<script src="vendor/lunar.js"></script><script src="vendor/lunation.js"></script><script src="vendor/local_lunar.js"></script>
 <script src="js/engine.js"></script><script src="js/chart.js"></script><script src="js/book.js"></script><script src="js/render.js"></script><script src="js/export.js"></script><script src="js/cases.js"></script><script src="js/app.js"></script>
 </body></html>
